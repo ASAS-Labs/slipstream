@@ -1,0 +1,5 @@
+# CAD source files 
+car/
+
+# macOS metadata
+.DS_Store

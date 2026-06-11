@@ -1,0 +1,56 @@
+# ─── Simulation :
+mujoco                        # Physics simulation (RC car model)
+mujoco-mjx                    # JAX-based GPU-parallel MuJoCo (for RL rollouts)
+
+# ─── NMPC / MPC Solvers :
+casadi                        # Symbolic framework; backbone for NMPC/MPPI formulation
+acados-template               # High-performance NMPC solver (C-generated, real-time capable)
+do-mpc                        # CasADi-based MPC framework with multi-shooting support
+# cyipopt                     # Interior-point NLP solver (IPOPT Python bindings); needs libipopt-dev
+# osqp                        # Quadratic program solver (linear MPC, fast)
+# osqp-eigen                  # Eigen interface for OSQP (if using C++ bridge)
+
+# ─── MPPI :
+jax[cuda12]                   # GPU-accelerated MPPI rollouts (preferred)
+jaxlib                        # JAX backend
+# torch                       # if JAX is unavailable
+
+# ─── RL Libraries :
+stable-baselines3             # PPO, SAC, TD3 — clean reference implementations
+sb3-contrib                   # Extra algorithms (TQC, TRPO, RecurrentPPO)
+gymnasium                     # Standard RL environment interface (replaces gym)
+# ray[rllib]                  # Distributed RL (scale PPO across CPUs/GPUs)
+# tianshou                    # Alternative RL library; strong on custom envs
+
+# ─── System Identification :
+scipy                         # Curve fitting, signal processing, optimisation
+scikit-learn                  # Regression models for motion model ID
+filterpy                      # Kalman filters (EKF/UKF for state estimation)
+# pysindy                     # Sparse ID of nonlinear dynamics (SINDy)
+
+# ─── Perception & Vision :
+opencv-python-headless        # Core CV (camera feed, ArUco/AprilTag pose)
+opencv-contrib-python-headless# Extra modules (ArUco, optical flow)
+pupil-apriltags               # AprilTag detection for ground-truth pose
+
+# ─── Numerics & Data :
+numpy
+pandas                        # Experiment logging and data wrangling
+einops                        # Tensor manipulation (useful in RL policy networks)
+
+# ─── Plotting & UI :
+matplotlib
+nicegui                       # Live dashboard for telemetry / experiment control
+
+# ─── Hardware & Comms :
+serial                        # UART to servo/ESC hardware
+pyzmq                         # ZeroMQ messaging (inter-process: MPC <-> sim <-> hardware)
+# zenoh                       # Alternative pub/sub transport (lower latency than ZMQ)
+
+# ─── Experiment Tracking :
+wandb                         # Experiment logging (RL training curves, NMPC tuning)
+# mlflow                      # Alternative if self-hosted tracking is preferred
+
+# ─── Commented out (environment-specific) :
+# pywebview
+# PyGObject

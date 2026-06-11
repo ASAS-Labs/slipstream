@@ -1,0 +1,181 @@
+<!-- Model :: Crickets! A Rover with Ground Plane --> 
+<!-- Author :: sous_chef -->
+
+<mujoco model="delorian">
+
+    <option timestep="0.002" gravity="0 0 -9.81"/>
+    <compiler inertiafromgeom="true" angle="degree"/>
+
+    <asset>
+        <material name="MatWheel" specular="1" rgba=".1 .1 .1 1"/>
+        <material name="MatBody"  specular="1" rgba=".6 .6 .1 1"/>
+
+        <mesh name="delorian_body_mesh" file="../meshes/Delorian_Steerless_Base.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="left_wheel" file="../meshes/Wheel_Left.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="right_wheel" file="../meshes/Wheel_Right.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="steering_wheel" file="../meshes/Delorian_Steering_Wheel.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="steering_column" file="../meshes/Delorian_SteeringWheel_ConnectingRod.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="steering_shaft" file="../meshes/Delorian_Steering_Shaft.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="steering_cup_left" file="../meshes/Delorian_Steering_Cup_Left.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="steering_cup_right" file="../meshes/Delorian_Steering_Cup_Right.stl" scale="0.001 0.001 0.001"/>
+    </asset>
+
+    <default>
+        <geom contype="1" conaffinity="1" friction="1.0 0.01 0.0005"/>
+    </default>
+
+    <visual>
+        <headlight active="1"/>
+        <scale camera=".5"/>
+        <map znear="0.001" zfar="1000"/>
+    </visual>
+
+    <worldbody>
+        <body name="rover" pos="0 0 0.0">
+
+            <light name="lamp" active="true" directional="true" cutoff="4" exponent="20" diffuse="1 1 1" specular="0 0 0" pos="0 0 2.5" dir="0 0 -1"/>
+            <camera name="first-person" mode="fixed" pos=".22 0 .08" euler="3.1416 -2.3213 -1.5708" fovy="90"/>
+
+            <joint name="centroid" type="free"/>
+
+            <!-- CHASSIS -->
+            <geom name="rover-body" type="mesh" mesh="delorian_body_mesh" pos="0 0 0" axisangle="0 0 1 -90.0" mass="3" material="MatBody"/>
+            <site name="pivot_marker" type="sphere" pos="0 0 0" size="0.01" rgba="1 0 0 1"/>
+
+
+            <!-- REAR WHEELS -->
+            <body name="r-l-wheel" pos="-0.04000 0.05890 0.0135">
+                <joint name="r-l-drive-hinge" type="hinge" axis="0 1 0" damping="0.01"/>
+                <geom name="r-l-wheel-geom" type="mesh" mesh="left_wheel" pos="0 0 0" axisangle="0 0 1 -90.0" mass="0.0125" material="MatWheel"/>
+            </body>
+
+            <body name="r-r-wheel" pos="-0.04000 -0.11000 0.0135">
+                <joint name="r-r-drive-hinge" type="hinge" axis="0 1 0" damping="0.01"/>
+                <geom name="r-r-wheel-geom" type="mesh" mesh="right_wheel" pos="0 0 0" axisangle="0 0 1 -90.0" mass="0.0125" material="MatWheel"/>
+            </body>
+
+
+            <!-- STEERING LINKAGE -->
+
+
+            <!-- Servo horn: rotates around X axis -->
+            <body name="steering_wheel" pos="0.0997 -0.00965 0.01">
+                <joint name="servo-steer" type="hinge" axis="1 0 0" limited="true" range="-45 45" damping="0.01"/>
+                <!-- BLUE -->
+                <site name="servo-steer-marker" type="sphere" pos="0 0 0" size="0.001" rgba="0 0 1 1"/>
+                <geom name="steering_wheel-geom" type="mesh" mesh="steering_wheel"
+                      pos="0 0 0" axisangle="0 0 1 90.0" contype="0" conaffinity="0" mass="0.05"/>
+
+                <!-- Push-rod: servo horn -> left cup -->
+                <body name="steering_column" pos="0.01 -0.0037 0.0239">
+                    <joint name="column-to-horn" type="hinge" pos="-0.0025 0 0" axis="1 0 0" damping="0.001"/>
+                    <!-- RED -->
+                    <site name="column_ball1_marker" type="sphere" pos="-0.0025 0 0" size="0.002" rgba="1 0 0 1"/>
+                    <geom name="steering_column_geom" type="mesh" mesh="steering_column"
+                          pos="0 0 0" axisangle="0 0 1 -90.0" contype="0" conaffinity="0" mass="0.05"/>
+
+                    <!-- Far end of push-rod, pinned to cup_left_connection (YELLOW FADE) -->
+                    <site name="column_end" type="sphere" pos="0.017 0.04925 -0.01675" size="0.004" rgba="1 1 0 0.5"/>
+                </body>
+            </body>
+
+            <!-- Left steering cup: pivots on chassis around Z -->
+            <body name="steering_cup_left" pos="0.1096 -0.0132 0.0337">
+                <joint name="cup-left-to-chassis" type="hinge" pos="-0.00695 0.0595 -0.0255" axis="0 0 1" damping="0.01"/>
+                <!-- CYAN FADE -->
+                <site name="cup_left_knuckle" pos="-0.00695 0.0595 -0.0255" size="0.002" rgba="0 1 1 0.5"/>
+                <geom name="steering_cup_left_geom" type="mesh" mesh="steering_cup_left"
+                      pos="0 0 0" axisangle="0 0 1 -90.0" contype="0" conaffinity="0" mass="0.05"/>
+
+                <!-- Column push-rod attachment: column_end pins here (YELLOW) -->
+                <site name="cup_left_connection" pos="0.017 0.04925 -0.01675" size="0.002" rgba="1 1 0 1"/>
+
+                <!-- Tie-rod: child of left cup, right end drives right cup via connect -->
+                <body name="steering_shaft" pos="0 0 0">
+                    <joint name="cup-left-to-shaft" type="hinge" pos="0.017 0.04925 -0.0225" axis="0 0 1" damping="0.01"/>
+                    <!-- MAGENTA FADE -->
+                    <site name="shaft_hinge1_marker" type="sphere" pos="0.017 0.04925 -0.0225" size="0.004" rgba="1 0 1 0.5"/>
+                    <geom name="steering_shaft_geom" type="mesh" mesh="steering_shaft" pos="0 0 0" axisangle="0 0 1 -90.0" contype="0" conaffinity="0" mass="0.05"/>
+
+                    <!-- Right end of tie-rod: pinned to cup_right_connection -->
+                    <!-- GREEN FADE -->
+                    <site name="shaft_right_end" pos="0.017 -0.02255 -0.0225" size="0.005" rgba="0 1 0 0.2"/>
+                </body>
+
+                <!-- =================================================================== -->
+                <!-- FRONT-LEFT WHEEL (child of left cup — inherits steering rotation)   -->
+                <!-- pos is in cup-local frame: rover_pos(wheel) - rover_pos(cup)        -->
+                <!-- (0.10240-0.1096, 0.05457-(-0.0132), 0.0135-0.0337)                 -->
+                <!-- =================================================================== -->
+                <body name="f-l-wheel" pos="-0.00720 0.06777 -0.02020">
+                    <!-- No steer joint needed: cup-left-to-chassis IS the steer joint -->
+                    <body name="f-l-tyre">
+                        <inertial pos="0 0.019377 0" mass="0.13839"/>
+                        <joint name="f-l-spin" type="hinge" axis="0 1 0" damping="0.001"/>
+                        <geom name="f-l-wheel-geom" type="mesh" mesh="left_wheel" pos="0 -0.0015 0" axisangle="0 0 1 -90.0" mass="0.139" material="MatWheel"/>
+                    </body>
+                </body>
+
+            </body>
+
+            <!-- Right steering cup: pivots on chassis around Z -->
+            <body name="steering_cup_right" pos="0.1096 -0.0132 0.0337">
+                <joint name="cup-right-to-chassis" type="hinge" pos="-0.00725 -0.0335 -0.0255" axis="0 0 1" damping="0.01"/>
+                <!-- ORANGE FADE -->
+                <site name="cup_right_knuckle" pos="-0.00725 -0.0335 -0.0255" size="0.003" rgba="1 0.5 0 0.5"/>
+                <geom name="steering_cup_right_geom" type="mesh" mesh="steering_cup_right"
+                      pos="0 0 0" axisangle="0 0 1 -90.0" contype="0" conaffinity="0" mass="0.05"/>
+
+                <!-- Tie-rod right end pins here -->
+                <!-- GREEN -->
+                <site name="cup_right_connection" pos="0.017 -0.02255 -0.0225" size="0.003" rgba="0 1 0 1"/>
+
+                <!-- =================================================================== -->
+                <!-- FRONT-RIGHT WHEEL (child of right cup — inherits steering rotation) -->
+                <!-- pos is in cup-local frame: rover_pos(wheel) - rover_pos(cup)        -->
+                <!-- (0.10240-0.1096, -0.10657-(-0.0132), 0.0135-0.0337)                -->
+                <!-- =================================================================== -->
+                <body name="f-r-wheel" pos="-0.00720 -0.09337 -0.02020">
+                    <!-- No steer joint needed: cup-right-to-chassis IS the steer joint -->
+                    <body name="f-r-tyre">
+                        <inertial pos="0 0.019377 0" mass="0.13839"/>
+                        <joint name="f-r-spin" type="hinge" axis="0 1 0" damping="0.001"/>
+                        <geom name="f-r-wheel-geom" type="mesh" mesh="right_wheel" pos="0 0.0015 0" axisangle="0 0 1 -90.0" mass="0.139" material="MatWheel"/>
+                    </body>
+                </body>
+
+            </body>
+
+        </body>
+    </worldbody>
+
+    <tendon>
+        <fixed name="rear-differential">
+            <joint joint="r-l-drive-hinge" coef="1"/>
+            <joint joint="r-r-drive-hinge" coef="1"/>
+        </fixed>
+    </tendon>
+
+    <actuator>
+        <motor name="drive" tendon="rear-differential" ctrllimited="true" ctrlrange="-1.0 1.0" gear="1.5"/>
+        <!-- ctrlrange="-0.261799 0.261799" gear="1"/> -->
+        <!-- ctrlrange="-0.523599 0.523599" gear="1"/> -->
+        <!-- ctrlrange="-0.785398 0.785398" gear="1"/> -->
+        <motor name="steer-servo" joint="servo-steer" ctrllimited="true" ctrlrange="-1 1" gear="1"/>
+    </actuator>
+
+    <equality>
+        <!-- LINK 1: Push-rod drives left cup. column_end to cup_left_connection. (connect: ball joint, transmits push/pull) -->
+        <connect name="column-to-cup-left"
+                 site1="column_end"
+                 site2="cup_left_connection"
+                 solref="0.001 1" solimp="0.9 0.95 0.001"/>
+
+        <!-- LINK 2: Tie-rod right end drives right cup. shaft_right_end to cup_right_connection. (connect: ball joint, correct for rod end) Differential steering angle between left/right cups emerges from lever-arm geometry.-->
+        <connect name="shaft-to-cup-right"
+                 site1="shaft_right_end"
+                 site2="cup_right_connection"
+                 solref="0.001 1" solimp="0.9 0.95 0.001"/>
+    </equality>
+
+</mujoco>

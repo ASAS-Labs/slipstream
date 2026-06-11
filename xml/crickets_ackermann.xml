@@ -1,0 +1,223 @@
+<!-- ======================================================
+    Model :: Crickets vintage: Rover with Ackermann Steering
+    Notes ::
+        - Wheels collide with floor and body (contact forces enabled).
+        - Body mesh is visual+mass; add a simple collision geom if needed later.
+        - Uses a "ghost" steering joint actuated by a position servo, and equality
+        constraints map ghost steer -> left/right front steering angles.
+    Authors :: sous_chef
+====================================================== -->
+<mujoco model="delorian">
+
+    <!-- Simulation settings -->
+    <option timestep="0.002" gravity="0 0 -9.81"/>
+    <compiler inertiafromgeom="true" angle="degree"/>
+
+    <!-- Material -->
+    <asset>
+        <material name="MatWheel" specular="1" rgba=".1 .1 .1 1"/>
+        <material name="MatBody"  specular="1" rgba=".6 .6 .1 1"/>
+
+        <!-- STL meshes (Fusion exported in mm -> scale to meters) -->
+        <mesh name="delorian_body_mesh" file="../meshes/Delorian_Steerless_Base.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="left_wheel"         file="../meshes/Wheel_Left.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="right_wheel"        file="../meshes/Wheel_Right.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="steering_wheel"     file="../meshes/Delorian_Steering_Wheel.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="steering_column"    file="../meshes/Delorian_SteeringWheel_ConnectingRod.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="steering_shaft"     file="../meshes/Delorian_Steering_Shaft.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="steering_cup_left"  file="../meshes/Delorian_Steering_Cup_Left.stl"  scale="0.001 0.001 0.001"/>
+        <mesh name="steering_cup_right" file="../meshes/Delorian_Steering_Cup_Right.stl" scale="0.001 0.001 0.001"/>
+    </asset>
+
+    <!-- Global defaults: all geoms collide unless explicitly disabled -->
+    <default>
+        <!-- contype/conaffinity = collision filter groups; 1 means "collide with others in group 1" -->
+        <geom contype="1" conaffinity="1" friction="1.0 0.01 0.0005"/>
+    </default>
+
+    <!-- Viewer settings -->
+    <visual>
+        <headlight active="1"/>
+        <scale camera=".5"/>
+        <map znear="0.001" zfar="1000"/>
+    </visual>
+
+    <worldbody>
+        <body name="rover" pos="0 0 0.0">
+
+            <!-- Lighting and camera -->
+            <light name="lamp" active="true" directional="true" cutoff="4" exponent="20"
+                   diffuse="1 1 1" specular="0 0 0" pos="0 0 2.5" dir="0 0 -1"/>
+            <camera name="first-person" mode="fixed" pos=".22 0 .08" euler="3.1416 -2.3213 -1.5708" fovy="90"/>
+
+            <!-- Free-floating base -->
+            <!-- The free joint is the only thing that allows the entire vehicle to move due to contact forces -->
+            <joint name="centroid" type="free"/>
+
+            <!-- CHASSIS -->
+            <geom name="rover-body" type="mesh" mesh="delorian_body_mesh"
+                  pos="0 0 0" axisangle="0 0 1 -90.0" mass="3" material="MatBody"/>
+            <site name="pivot_marker" type="sphere" pos="0 0 0" size="0.01" rgba="1 0 0 1"/>
+
+            
+            <!-- REAR WHEELS -->
+
+            <!-- Rear-left wheel: spin joint about axle -->
+            <body name="r-l-wheel" pos="-0.04000 0.05890 0.0135">
+                <joint name="r-l-drive-hinge" type="hinge" axis="0 1 0" damping="0.01"/>
+                <geom name="r-l-wheel-geom" type="mesh" mesh="left_wheel"
+                      pos="0 0 0" axisangle="0 0 1 -90.0" mass="0.0125" material="MatWheel"/>
+            </body>
+
+            <!-- Rear-right wheel -->
+            <body name="r-r-wheel" pos="-0.04000 -0.11000 0.0135">
+                <joint name="r-r-drive-hinge" type="hinge" axis="0 1 0" damping="0.01"/>
+                <geom name="r-r-wheel-geom" type="mesh" mesh="right_wheel"
+                      pos="0 0 0" axisangle="0 0 1 -90.0" mass="0.0125" material="MatWheel"/>
+            </body>
+
+            <!-- =========================================================================================================================== -->
+            <!-- GHOST STEERING WHEEL                                                                                                         -->
+            <!-- =========================================================================================================================== -->
+
+            <!-- Ghost steering body: command this joint; equality maps it to front steering joints -->
+            <body name="ghost-steer-wheel" pos="0 0 0.20">
+                <joint name="ghost-steer-hinge" type="hinge" axis="0 0 1"
+                       limited="true" range="-0.29 0.29" damping="0.05"/>
+
+                <!-- Visual-only: disable collisions so it doesn't interact with rover/floor -->
+                <geom name="ghost-steer-geom" type="cylinder" size=".05 .01"
+                      axisangle="1 0 0 90.0" contype="0" conaffinity="0" mass="0.05"/>
+            </body>
+
+            <!-- =========================================================================================================================== -->
+            <!-- STEERING COMPONENT                                                                                                           -->
+            <!-- =========================================================================================================================== -->
+
+            <!-- Servo Wheel - rotates around X axis (actuated) -->
+            <body name="steering_wheel" pos="0.0997 -0.00965 0.01">
+                <joint name="servo-steer" type="hinge" pos="0.0 0 0" axis="1 0 0"
+                       limited="true" range="-30 30" damping="0.01"/>
+                <site name="servo_shaft_marker" type="sphere" pos="0.0 0 0" size="0.001" rgba="0 0 1 1"/>
+                <geom name="steering_wheel-geom" type="mesh" mesh="steering_wheel"
+                      pos="0.0 0.0 0" axisangle="0 0 1 90.0" contype="0" conaffinity="0" mass="0.05"/>
+
+                <!-- Steering Column (child of steering_wheel, connected via ball joint) -->
+                <body name="steering_column" pos="0.01 -0.0037 0.0239">
+                    <!-- Ball joint at servo horn connection -->
+                    <joint name="column-to-horn" type="hinge" pos="-0.0025 0 0" axis="1 0 0" damping="0.01"/>
+                    <site name="column_ball1_marker" type="sphere" pos="-0.0025 0 0" size="0.002" rgba="1 0 0 1"/>
+                    <geom name="steering_column_geom" type="mesh" mesh="steering_column"
+                          pos="0.0 0.0 0" axisangle="0 0 1 -90.0" contype="0" conaffinity="0" mass="0.05"/>
+
+                    <!-- Site to connect this column to the steering cup in the equality section -->
+                    <site name="column_end" pos="0.017 0.04925 -0.01675" size="0.002" rgba="1 1 0 1"/>
+                </body>
+            </body>
+
+
+            <!-- Steering Cup Left - mounted on chassis with hinge -->
+            <body name="steering_cup_left" pos="0.1096 -0.0132 0.0337">
+                <joint name="cup-left-to-chassis" type="hinge"
+                       pos="-0.00695 0.0595 -0.0255" axis="0 0 1" damping="0.01"/>
+                <site name="cup_chassis_pivot_left" type="sphere"
+                      pos="-0.00695 0.0595 -0.0255" size="0.001" rgba="0 1 1 1"/>
+                <geom name="steering_cup_left_geom" type="mesh" mesh="steering_cup_left"
+                      pos="0 0 0" axisangle="0 0 1 -90.0" contype="0" conaffinity="0" mass="0.05"/>
+
+                <!-- Site to connect this cup to the steering column in the equality section -->
+                <site name="cup_left_connection" pos="0.017 0.04925 -0.01675" size="0.002" rgba="1 1 0 1"/>
+
+                <!-- Steering Shaft (child of cup_left) -->
+                <body name="steering_shaft" pos="0 0 0">
+                    <!-- Hinge joint connecting cup_left to shaft -->
+                    <joint name="cup-left-to-shaft" type="hinge"
+                           pos="-0.00695 0.0595 -0.0255" axis="0 0 1" damping="0.01"/>
+                    <site name="shaft_hinge1_marker" type="sphere"
+                          pos="0.017 0.04925 -0.0225" size="0.002" rgba="1 0 1 1"/>
+                    <geom name="steering_shaft_geom" type="mesh" mesh="steering_shaft"
+                          pos="0.0 0.0 0" axisangle="0 0 1 -90.0" contype="0" conaffinity="0" mass="0.05"/>
+                </body>
+            </body>
+
+            <!-- Steering Cup Right - mounted on chassis with hinge -->
+            <body name="steering_cup_right" pos="0.1096 -0.0132 0.0337">
+                <!-- Hinge joint: cup pivots on chassis around Z-axis -->
+                <joint name="cup-right-to-chassis" type="hinge"
+                       pos="-0.00725 -0.0335 -0.0255" axis="0 0 1" damping="0.01"/>
+                <site name="cup_chassis_pivot_right" type="sphere"
+                      pos="-0.00725 -0.0335 -0.0255" size="0.001" rgba="1 0.5 0 1"/>
+                <geom name="steering_cup_right_geom" type="mesh" mesh="steering_cup_right"
+                      pos="0 0 0" axisangle="0 0 1 -90.0" contype="0" conaffinity="0" mass="0.05"/>
+            </body>
+
+            <!-- =========================================================================================================================== -->
+            <!-- FRONT WHEELS                                                                                                                 -->
+            <!-- =========================================================================================================================== -->
+
+            <!-- Front-left steering knuckle/wheel -->
+            <body name="f-l-wheel" pos="0.10240 0.05457 0.0135">
+                <inertial pos="0 0 0" mass="0.01" diaginertia="1e-6 1e-6 1e-6"/>
+                <joint name="f-l-steer-hinge" pos="0 0 0" type="hinge" axis="0 0 1"
+                       damping="0.01" limited="true" range="-30 30"/>
+
+                <body name="f-l-tyre">
+                    <inertial pos="0 0.019377 0" mass="0.13839"/>
+                    <joint name="f-l-spin" type="hinge" axis="0 1 0" damping="0.001"/>
+                    <geom name="f-l-wheel-geom" type="mesh" mesh="left_wheel"
+                          pos="0 0 0" axisangle="0 0 1 -90.0" mass="0.139" material="MatWheel"/>
+                </body>
+            </body>
+
+            <!-- Front-right steering knuckle/wheel -->
+            <body name="f-r-wheel" pos="0.10240 -0.10657 0.0135">
+                <inertial pos="0 0 0" mass="0.01" diaginertia="1e-6 1e-6 1e-6"/>
+                <joint name="f-r-steer-hinge" pos="0 0 0" type="hinge" axis="0 0 1"
+                       damping="0.01" limited="true" range="-30 30"/>
+
+                <body name="f-r-tyre">
+                    <inertial pos="0 0.019377 0" mass="0.13839"/>
+                    <joint name="f-r-spin" type="hinge" axis="0 1 0" damping="0.001"/>
+                    <geom name="f-r-wheel-geom" type="mesh" mesh="right_wheel"
+                          pos="0 0 0" axisangle="0 0 1 -90.0" mass="0.139" material="MatWheel"/>
+                </body>
+            </body>
+
+        </body>
+    </worldbody>
+
+    <!-- Tendon: couples rear wheel spin joints (locked diff approximation) -->
+    <tendon>
+        <fixed name="rear-differential">
+            <joint joint="r-l-drive-hinge" coef="1"/>
+            <joint joint="r-r-drive-hinge" coef="1"/>
+        </fixed>
+    </tendon>
+
+    <!-- Actuators -->
+    <actuator>
+        <!-- Position servo for ghost steering joint (PD-like internally) -->
+        <position name="ghost-steer" joint="ghost-steer-hinge"
+                  ctrllimited="true" ctrlrange="-0.52 0.52" gear="1"/>
+        <!-- Motor drives the rear differential tendon (applies torque to both rear wheels) -->
+        <motor name="drive" tendon="rear-differential"
+               ctrllimited="true" ctrlrange="-1.0 1.0" gear="1.5"/>
+        <motor name="steer-servo" joint="servo-steer"
+               ctrllimited="true" ctrlrange="-0.261799 0.261799" gear="1"/>
+    </actuator>
+
+    <!-- Equality constraints: Ackermann mapping from ghost steering angle -> front left/right steering angles -->
+    <equality>
+        <!-- Ackermann constraints: ghost hinge drives both front wheel steer hinges with slight differential -->
+        <joint name="ackermann_fl" joint1="f-l-steer-hinge" joint2="ghost-steer-hinge"
+               polycoef="0 1.05 0 0 0"/>
+        <joint name="ackermann_fr" joint1="f-r-steer-hinge" joint2="ghost-steer-hinge"
+               polycoef="0 0.95 0 0 0"/>
+
+        <!-- Steering linkage: column end pinned to left cup input arm -->
+        <connect name="column-to-cup-left"
+                 site1="column_end" site2="cup_left_connection"
+                 solref="0.001 1" solimp="0.9 0.95 0.001"/>
+    </equality>
+
+</mujoco>
