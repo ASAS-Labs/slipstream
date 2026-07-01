@@ -129,7 +129,7 @@ def main():
     ax[1].grid(True)
 
     plt.tight_layout()
-    outfile = "results/timestep_convergence.png"
+    outfile = "../results/timestep_convergence.png"
     plt.savefig(outfile, dpi=150)
     print(f"\nSaved plot to {outfile}")
 

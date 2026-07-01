@@ -157,7 +157,7 @@ def main():
         print("          the connect constraint lines are zero-length at rest.")
 
     if t0_ok and not settled_ok:
-        print("\n  ACTION: Rest pose is fine but solver is softening constraints.")
+        print("\n  ACTION: Rest posse is fine but solver is softening constraints.")
         print("          Try tightening solref (e.g. solref='0.005 1')")
         print("          and solimp (e.g. solimp='0.99 0.999 0.001').")
 
@@ -180,7 +180,7 @@ def main():
     ax.set_yscale("log")
 
     plt.tight_layout()
-    outfile = "results/constraint_residuals.png"
+    outfile = "../results/constraint_residuals.png"
     plt.savefig(outfile, dpi=150)
     print(f"\nSaved plot to {outfile}")
 

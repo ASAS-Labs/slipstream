@@ -114,7 +114,7 @@ def run_simulation(duration=10.0, timestep=0.01):
     }
 
 
-def plot_results(results, outfile="results/static_equilibrium_output.png"):
+def plot_results(results, outfile="../results/static_equilibrium_output.png"):
     """Plot position, velocity, heading, and constraint residuals over time."""
     t = results['time']
     has_efc = results['efc'] is not None
