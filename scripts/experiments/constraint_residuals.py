@@ -180,7 +180,7 @@ def main():
     ax.set_yscale("log")
 
     plt.tight_layout()
-    outfile = "constraint_residuals.png"
+    outfile = "results/constraint_residuals.png"
     plt.savefig(outfile, dpi=150)
     print(f"\nSaved plot to {outfile}")
 

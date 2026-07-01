@@ -227,7 +227,7 @@ def main():
     axes[2].grid(True)
 
     plt.tight_layout()
-    outfile = "steering_symmetry.png"
+    outfile = "results/steering_symmetry.png"
     plt.savefig(outfile, dpi=150)
     print(f"\nSaved plot to {outfile}")
 
